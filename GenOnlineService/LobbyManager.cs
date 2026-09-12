@@ -820,27 +820,8 @@ public async Task FinalizeACChecks()
 				strDisplayName = String.Format("{0} ({1})", strDisplayName, dupesSeen);
 			}
 
-			string strPlatformTag = "";
-			bool bShowPlayerPlatform = Program.g_Config.GetSection("Lobby").GetValue<bool?>("show_player_platform_tag") ?? true;
-			if (bShowPlayerPlatform)
-			{
-				if (playerSession.m_client_id == KnownClients.EKnownClients.generalsx_macos)
-				{
-					strPlatformTag = " [MAC]";
-				}
-				else if (playerSession.m_client_id == KnownClients.EKnownClients.generalsx_linux)
-				{
-					strPlatformTag = " [LNX]";
-				}
-				else if (playerSession.m_client_id == KnownClients.EKnownClients.generalsx_windows || playerSession.m_client_id == KnownClients.EKnownClients.gen_online_30hz || playerSession.m_client_id == KnownClients.EKnownClients.gen_online_60hz)
-				{
-					strPlatformTag = " [WIN]";
-				}
-			}
-			if (!string.IsNullOrEmpty(strPlatformTag) && !strDisplayName.EndsWith(strPlatformTag))
-			{
-				strDisplayName += strPlatformTag;
-			}
+			// Note: Player platform tags ([WIN], [MAC], [LNX]) are displayed exclusively in the Lobby player list
+			// (Constants.cs) and are not appended to the player's in-game / staging room display name.
 
 			// only apply lobby prefs if not QM
 			LobbyMember? newMember = null;
