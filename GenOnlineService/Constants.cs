@@ -621,6 +621,11 @@ namespace GenOnlineService
 
 		private static ConcurrentDictionary<Int64, SharedUserData> m_dictSharedUserData = new();
 
+		public static int GetOnlineUsersCount()
+		{
+			return m_dictSharedUserData.Count;
+		}
+
 		public static ConcurrentDictionary<EUserSessionType, ConcurrentDictionary<Int64, UserSession>> GetUserDataCache()
 		{
 			return m_dictUserSessions;

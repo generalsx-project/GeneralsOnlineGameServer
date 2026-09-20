@@ -770,6 +770,12 @@ namespace Database
 
 					Console.WriteLine($"[WinnerDet] Match={lobby.MatchID}: marking slot={kv.Key} user={model.user_id} as {(isWinner ? "WINNER" : "loser")}.");
 					await UpdateMatchHistorySetWinFlag(db, lobby.MatchID, kv.Key, isWinner);
+
+					// If no outcomes were explicitly reported by clients, register with DailyStats fallback
+					if (lobby.ReportedOutcomes.Count == 0)
+					{
+						DailyStatsManager.RegisterOutcome(model.side, isWinner);
+					}
 				}
 			}
 			catch (Exception ex)

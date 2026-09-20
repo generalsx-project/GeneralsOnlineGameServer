@@ -33,6 +33,7 @@ namespace GenOnlineService.Controllers
 		}
 
 		public DailyStatsStructure? globalstats { get; set; } = null;
+		public int online_players { get; set; } = 0;
 	}
 
 	[ApiController]
@@ -53,6 +54,7 @@ namespace GenOnlineService.Controllers
 			RouteHandler_GET_GlobalStats_Result result = new RouteHandler_GET_GlobalStats_Result();
 
 			result.globalstats = DailyStatsManager.g_StatsContainer.Stats;
+			result.online_players = WebSocketManager.GetOnlineUsersCount();
 
 			return result;
 		}
