@@ -248,6 +248,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `ipv6` tinyint(1) NOT NULL DEFAULT 0,
   `active` tinyint(1) NOT NULL DEFAULT 0,
   `lastlogin` datetime NOT NULL DEFAULT current_timestamp(),
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `last_ip` varchar(45) NOT NULL DEFAULT '',
   `client_id` smallint(5) unsigned NOT NULL DEFAULT 0,
   `favorite_color` int(11) NOT NULL DEFAULT -1,
