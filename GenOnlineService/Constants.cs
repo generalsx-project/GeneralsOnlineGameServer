@@ -1099,8 +1099,18 @@ namespace GenOnlineService
 
 		public string GetFullCountryName()
 		{
-			RegionInfo ri = new RegionInfo(m_strCountry);
-			return ri.EnglishName;
+			try
+			{
+				if (!string.IsNullOrEmpty(m_strCountry))
+				{
+					RegionInfo ri = new RegionInfo(m_strCountry);
+					return ri.EnglishName;
+				}
+			}
+			catch
+			{
+			}
+			return "Unknown";
 		}
 
 		public string GetFullContinentName()

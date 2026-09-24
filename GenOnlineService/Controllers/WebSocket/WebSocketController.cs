@@ -57,12 +57,18 @@ namespace GenOnlineService.Controllers
 				bool bEnabled = Program.g_Config.GetSection("GeoIP").GetValue<bool?>("enabled") ?? true;
 				if (!bEnabled)
 				{
+					Console.WriteLine("[GeoIP] GeoIP continent detection is disabled by configuration");
 					return null;
 				}
 				string path = Program.g_Config.GetSection("GeoIP").GetValue<string>("database_path") ?? "data/GeoLite2-City.mmdb";
 				if (System.IO.File.Exists(path))
 				{
+					Console.WriteLine($"[GeoIP] Successfully loaded GeoLite2 database from {path}");
 					return new DatabaseReader(path);
+				}
+				else
+				{
+					Console.WriteLine($"[GeoIP] GeoLite2 database not found at '{path}'. Continent tag detection disabled.");
 				}
 			}
 			catch (Exception ex)
@@ -100,27 +106,34 @@ namespace GenOnlineService.Controllers
 				return;
 			}
 
-			string ipAddress = IPHelpers.NormalizeIP(HttpContext.Connection.RemoteIpAddress?.ToString());
-			string ipContinent = Program.g_Config.GetSection("GeoIP").GetValue<string>("default_continent") ?? "SA";
-			string ipCountry = Program.g_Config.GetSection("GeoIP").GetValue<string>("default_country") ?? "BR";
+			string ipAddress = IPHelpers.GetClientIP(HttpContext);
+			string ipContinent = Program.g_Config.GetSection("GeoIP").GetValue<string>("default_continent") ?? "";
+			string ipCountry = Program.g_Config.GetSection("GeoIP").GetValue<string>("default_country") ?? "";
 			double dLongitude = -46.6333; // default Sao Paulo
 			double dLatitude = -23.5505f;
 
 			try
 			{
-				if (GeoIpReader != null)
+				if (GeoIpReader != null && !string.IsNullOrEmpty(ipAddress) && ipAddress != "unknown" && System.Net.IPAddress.TryParse(ipAddress, out System.Net.IPAddress? parsedAddr) && !System.Net.IPAddress.IsLoopback(parsedAddr))
 				{
-					var city = GeoIpReader.City(ipAddress);
+					var city = GeoIpReader.City(parsedAddr);
 
-					ipContinent = city.Continent.Code;
-					ipCountry = city.Country.IsoCode;
+					if (!string.IsNullOrEmpty(city.Continent?.Code))
+					{
+						ipContinent = city.Continent.Code;
+					}
 
-					if (city.Location.Longitude != null)
+					if (!string.IsNullOrEmpty(city.Country?.IsoCode))
+					{
+						ipCountry = city.Country.IsoCode;
+					}
+
+					if (city.Location?.Longitude != null)
 					{
 						dLongitude = (double)city.Location.Longitude;
 					}
 
-					if (city.Location.Latitude != null)
+					if (city.Location?.Latitude != null)
 					{
 						dLatitude = (double)city.Location.Latitude;
 					}
@@ -128,7 +141,7 @@ namespace GenOnlineService.Controllers
 			}
 			catch
 			{
-				// keep defaults
+				// Keep default/empty values if IP cannot be resolved
 			}
 
 			bool bIsAdmin = HttpContext.User.IsInRole("Admin");

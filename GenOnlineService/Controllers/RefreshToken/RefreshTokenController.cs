@@ -57,7 +57,7 @@ namespace GenOnlineService.Controllers.RefreshToken
 		[HttpPost(Name = "PostRefreshToken")]
 		public async Task<APIResult> Post()
 		{
-			return await Post_InternalHandler(IPHelpers.NormalizeIP(HttpContext.Connection.RemoteIpAddress?.ToString()));
+			return await Post_InternalHandler(IPHelpers.GetClientIP(HttpContext));
 		}
 
 		public async Task<APIResult> Post_InternalHandler(string ipAddr)

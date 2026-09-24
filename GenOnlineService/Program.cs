@@ -77,6 +77,42 @@ namespace GenOnlineService
 
 			return ipAddress;
 		}
+
+		public static string GetClientIP(HttpContext? context)
+		{
+			if (context == null)
+			{
+				return "unknown";
+			}
+
+			// 1. Cloudflare connecting IP header
+			string? cfIp = context.Request.Headers["CF-Connecting-IP"].FirstOrDefault();
+			if (!string.IsNullOrWhiteSpace(cfIp))
+			{
+				return NormalizeIP(cfIp.Trim());
+			}
+
+			// 2. Nginx / Reverse proxy X-Real-IP header
+			string? xRealIp = context.Request.Headers["X-Real-IP"].FirstOrDefault();
+			if (!string.IsNullOrWhiteSpace(xRealIp))
+			{
+				return NormalizeIP(xRealIp.Trim());
+			}
+
+			// 3. Standard X-Forwarded-For header (first hop is the original client IP)
+			string? xForwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+			if (!string.IsNullOrWhiteSpace(xForwardedFor))
+			{
+				string clientIp = xForwardedFor.Split(',')[0].Trim();
+				if (!string.IsNullOrWhiteSpace(clientIp))
+				{
+					return NormalizeIP(clientIp);
+				}
+			}
+
+			// 4. Fallback to direct TCP connection remote IP
+			return NormalizeIP(context.Connection.RemoteIpAddress?.ToString());
+		}
 	}
 
 	public static class SecretComparer
@@ -676,7 +712,7 @@ namespace GenOnlineService
 						if (jwtSettings.GetValue<bool>("enforce_ip_match"))
 						{
 							string strExpectedIP = addressClaim.Value;
-							string currentIP = IPHelpers.NormalizeIP(context.HttpContext.Connection.RemoteIpAddress?.ToString());
+							string currentIP = IPHelpers.GetClientIP(context.HttpContext);
 							if (strExpectedIP != currentIP)
 							{
 								context.Fail("Failed Validation #8 - IP mismatch");
@@ -909,7 +945,7 @@ namespace GenOnlineService
 						// Use authenticated user ID or fallback to IP address
 						var userKey = httpContext.User.Identity?.IsAuthenticated == true
 							? httpContext.User.Identity.Name
-							: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
+							: IPHelpers.GetClientIP(httpContext);
 
 						return RateLimitPartition.GetTokenBucketLimiter(userKey, _ => new TokenBucketRateLimiterOptions
 						{

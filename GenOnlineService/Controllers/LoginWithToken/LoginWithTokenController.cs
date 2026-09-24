@@ -72,7 +72,7 @@ namespace GenOnlineService.Controllers.LoginWithToken
 					//bSecureWS = false;
 				}
 
-				POST_LoginWithToken_Result result = (POST_LoginWithToken_Result)await Post_InternalHandler(jsonData, IPHelpers.NormalizeIP(HttpContext.Connection.RemoteIpAddress?.ToString()), bSecureWS);
+				POST_LoginWithToken_Result result = (POST_LoginWithToken_Result)await Post_InternalHandler(jsonData, IPHelpers.GetClientIP(HttpContext), bSecureWS);
 				return result;
 			}
 		}

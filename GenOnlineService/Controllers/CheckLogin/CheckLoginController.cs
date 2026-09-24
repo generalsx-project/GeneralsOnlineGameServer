@@ -70,7 +70,7 @@ namespace GenOnlineService.Controllers
 					//bSecureWS = false;
 				}
 
-				POST_CheckLogin_Result result = (POST_CheckLogin_Result)await Post_InternalHandler(jsonData, IPHelpers.NormalizeIP(HttpContext.Connection.RemoteIpAddress?.ToString()), bSecureWS);
+				POST_CheckLogin_Result result = (POST_CheckLogin_Result)await Post_InternalHandler(jsonData, IPHelpers.GetClientIP(HttpContext), bSecureWS);
 				return result;
 			}
 		}
