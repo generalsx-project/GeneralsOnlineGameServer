@@ -1810,6 +1810,9 @@ public async Task FinalizeACChecks()
 					// make sure we have a winner
 					await Database.MatchHistory.DetermineLobbyWinnerIfNotPresent(_db, lobby);
 
+					// update leaderboards and ELO natively
+					await Database.MatchHistory.UpdateLeaderboardAndElo(_db, lobby);
+
 					// Post match result to external leaderboard API for every lobby type.
 					// Only QuickMatch responses are expected to carry a ratings body.
 					await ExternalLeaderboardsClient.PostMatchResultAsync(_db, lobby);

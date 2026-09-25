@@ -1129,8 +1129,18 @@ namespace Database
 	AppDbContext db,
 	GenOnlineService.Lobby lobby)
 		{
-			if (lobby.LobbyType != ELobbyType.QuickMatch)
+			if (lobby == null || lobby.MatchID == 0)
 				return;
+
+			// QuickMatch is always ranked. CustomGame is ranked if stats tracking is enabled and map is official.
+			bool isEligible = lobby.LobbyType == ELobbyType.QuickMatch ||
+				(lobby.LobbyType == ELobbyType.CustomGame && lobby.IsTrackingStats && lobby.IsMapOfficial);
+
+			if (!isEligible)
+			{
+				Console.WriteLine($"[ELO] Match {lobby.MatchID} (Type={lobby.LobbyType}, TrackStats={lobby.IsTrackingStats}, OfficialMap={lobby.IsMapOfficial}) is not eligible for ELO.");
+				return;
+			}
 
 			try
 			{
@@ -1139,12 +1149,31 @@ namespace Database
 				int year = lobby.TimeCreated.Year;
 
 				var members = await LoadMatchMembersAsync(db, (long)lobby.MatchID);
-				if (members.Count == 0)
+				if (members.Count < 2)
+				{
+					Console.WriteLine($"[ELO] Match {lobby.MatchID} has fewer than 2 eligible human players ({members.Count}). Skipping ELO.");
 					return;
+				}
 
+				if (members.Any(m => m.desynced))
+				{
+					Console.WriteLine($"[ELO] Match {lobby.MatchID} ended in desync. Skipping ELO.");
+					return;
+				}
+
+				bool hasWinner = members.Any(m => m.won);
+				bool hasLoser = members.Any(m => !m.won);
+				if (!hasWinner || !hasLoser)
+				{
+					Console.WriteLine($"[ELO] Match {lobby.MatchID} has no clear winner/loser. Skipping ELO.");
+					return;
+				}
+
+				Console.WriteLine($"[ELO] Processing leaderboard & ELO for match {lobby.MatchID} ({members.Count} players)...");
 				await UpdateCurrentEloAsync(db, members);
 				await UpdatePeriodEloAndLeaderboardsAsync(
 					db, members, dayOfYear, monthOfYear, year);
+				Console.WriteLine($"[ELO] Successfully updated ELO and leaderboards for match {lobby.MatchID}.");
 			}
 			catch (Exception ex)
 			{
@@ -1202,6 +1231,9 @@ namespace Database
 					if (a.user_id >= b.user_id)
 						continue;
 
+					if (a.won == b.won)
+						continue;
+
 					Console.WriteLine($"[ELO] Pairing a={a.user_id}(won={a.won}) vs b={b.user_id}(won={b.won}) → result={(a.won ? "PlayerAWins" : "PlayerBWins")}");
 					ref EloData A = ref CollectionsMarshal.GetValueRefOrAddDefault(
 						dictElo, a.user_id, out _);
@@ -1251,6 +1283,12 @@ namespace Database
 	int monthOfYear,
 	int year)
 		{
+			// Ensure rows exist in LeaderboardDaily, LeaderboardMonthly, LeaderboardYearly before querying/updating
+			foreach (var m in members)
+			{
+				await Database.Leaderboards.CreateUserEntriesIfNotExists(db, m.user_id, dayOfYear, monthOfYear, year);
+			}
+
 			var userIds = members.Select(m => (long)m.user_id).ToList();
 			var bulk = await Database.Leaderboards.GetBulkLeaderboardData(
 				db, userIds, dayOfYear, monthOfYear, year);
@@ -1345,6 +1383,17 @@ namespace Database
 						.SetProperty(x => x.Points, y.Rating)
 						.SetProperty(x => x.Wins, x => x.Wins + wins)
 						.SetProperty(x => x.Losses, x => x.Losses + losses));
+
+				// Also sync monthly ELO rating to Users table and online session
+				await db.Users
+					.Where(u => u.ID == userId)
+					.ExecuteUpdateAsync(s => s.SetProperty(u => u.MonthlyEloRating, mo.Rating));
+
+				var shared = GenOnlineService.WebSocketManager.GetSharedDataForUser(userId);
+				if (shared?.GameStats != null)
+				{
+					shared.GameStats.MonthlyEloRating = mo.Rating;
+				}
 			}
 		}
 

@@ -213,11 +213,13 @@ namespace Database
 
 		public static async Task CreateUserEntriesIfNotExists(AppDbContext db, long playerId)
 		{
+			await CreateUserEntriesIfNotExists(db, playerId, DateTime.UtcNow.DayOfYear, DateTime.UtcNow.Month, DateTime.UtcNow.Year);
+		}
+
+		public static async Task CreateUserEntriesIfNotExists(AppDbContext db, long playerId, int dayOfYear, int monthOfYear, int year)
+		{
 			try
 			{
-				int dayOfYear = DateTime.UtcNow.DayOfYear;
-				int monthOfYear = DateTime.UtcNow.Month;
-				int year = DateTime.UtcNow.Year;
 
 				var daily = new LeaderboardDaily
 				{

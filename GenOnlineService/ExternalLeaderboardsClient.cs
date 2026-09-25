@@ -34,7 +34,7 @@ namespace GenOnlineService
 
     public static class ExternalLeaderboardsClient
     {
-        private static void GetExternalLeaderboardsConfig(out string postUrl, out string getUrl, out string postToken, out string getToken)
+        private static bool TryGetExternalLeaderboardsConfig(out string postUrl, out string getUrl, out string postToken, out string getToken)
         {
             postUrl = string.Empty;
             getUrl = string.Empty;
@@ -43,13 +43,13 @@ namespace GenOnlineService
 
             if (Program.g_Config == null)
             {
-                throw new Exception("Config not loaded");
+                return false;
             }
 
             IConfigurationSection? configSection = Program.g_Config.GetSection("ExternalLeaderboards");
             if (configSection == null)
             {
-                throw new Exception("ExternalLeaderboards section missing in config");
+                return false;
             }
 
             string? sectionPostUrl = configSection.GetValue<string>("PostUrl");
@@ -57,30 +57,17 @@ namespace GenOnlineService
             string? sectionPostToken = configSection.GetValue<string>("PostToken");
             string? sectionGetToken = configSection.GetValue<string>("GetToken");
 
-            if (string.IsNullOrEmpty(sectionPostUrl))
+            if (string.IsNullOrEmpty(sectionPostUrl) || string.IsNullOrEmpty(sectionGetUrl) ||
+                string.IsNullOrEmpty(sectionPostToken) || string.IsNullOrEmpty(sectionGetToken))
             {
-                throw new Exception("ExternalLeaderboards PostUrl missing in config");
-            }
-
-            if (string.IsNullOrEmpty(sectionGetUrl))
-            {
-                throw new Exception("ExternalLeaderboards GetUrl missing in config");
-            }
-
-            if (string.IsNullOrEmpty(sectionPostToken))
-            {
-                throw new Exception("ExternalLeaderboards PostToken missing in config");
-            }
-
-            if (string.IsNullOrEmpty(sectionGetToken))
-            {
-                throw new Exception("ExternalLeaderboards GetToken missing in config");
+                return false;
             }
 
             postUrl = sectionPostUrl;
             getUrl = sectionGetUrl;
             postToken = sectionPostToken;
             getToken = sectionGetToken;
+            return true;
         }
 
         // NOTE: A single shared HttpClient/handler is used for every call. Creating one per request re-resolves DNS,
@@ -127,9 +114,11 @@ namespace GenOnlineService
             if (lobby.MatchID == 0)
                 return;
 
+            if (!TryGetExternalLeaderboardsConfig(out string postUrl, out _, out string postToken, out _))
+                return;
+
             try
             {
-                GetExternalLeaderboardsConfig(out string postUrl, out _, out string postToken, out _);
 
                 // Load the match payload
                 var matchEntry = await Database.MatchHistory.LoadMatchHistoryEntryAsync(db, (long)lobby.MatchID);
@@ -239,9 +228,11 @@ namespace GenOnlineService
 
         public static async Task<EloData?> GetEloFromApi(long playerId)
         {
+            if (!TryGetExternalLeaderboardsConfig(out _, out string getUrl, out _, out string getToken))
+                return null;
+
             try
             {
-                GetExternalLeaderboardsConfig(out _, out string getUrl, out _, out string getToken);
 
                 string requestUrl = getUrl.Replace("{playerId}", playerId.ToString());
 
