@@ -398,7 +398,7 @@ namespace Database
 		}
 
 
-		private static string ComputeRosterType(Dictionary<int, int> playersPerTeam)
+		private static string ComputeRosterType(Dictionary<int, int> playersPerTeam, string mapName = "", string mapPath = "")
 		{
 			int noTeamCount = playersPerTeam.GetValueOrDefault(-1, 0);
 
@@ -413,7 +413,10 @@ namespace Database
 
 			if (activePlayers == 0 || groups.Count == 1)
 			{
-				return "Unknown";
+				bool isCoop = (!string.IsNullOrEmpty(mapName) && (mapName.Contains("co-op", StringComparison.OrdinalIgnoreCase) || mapName.Contains("coop", StringComparison.OrdinalIgnoreCase))) ||
+				              (!string.IsNullOrEmpty(mapPath) && (mapPath.Contains("co-op", StringComparison.OrdinalIgnoreCase) || mapPath.Contains("coop", StringComparison.OrdinalIgnoreCase)));
+
+				return isCoop ? "Co-Op" : "N/A";
 			}
 
 			if (activePlayers > 2 && groups.All(c => c == 1))
@@ -484,7 +487,7 @@ namespace Database
 				}
 
 				// Determine roster type
-				string rosterType = ComputeRosterType(playersPerTeam);
+				string rosterType = ComputeRosterType(playersPerTeam, lobby.MapName, lobby.MapPath);
 
 				// Build EF entity
 				var entity = new MatchHistoryEntry
