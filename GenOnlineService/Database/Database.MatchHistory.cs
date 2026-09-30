@@ -207,6 +207,7 @@ namespace GenOnlineService
 		public int color { get; set; } = -1;                // int(2) NOT NULL
 		public int team { get; set; } = -1;                 // int(1) NOT NULL
 		public int startpos { get; set; } = -1;             // int(1) NOT NULL
+		public int client_id { get; set; } = -1;            // EKnownClients enum value (-1 = unknown)
 		public int buildings_built { get; set; } = 0;     // int(11) DEFAULT NULL
 		public int buildings_killed { get; set; } = 0;     // int(11) DEFAULT NULL
 		public int buildings_lost { get; set; } = 0;       // int(11) DEFAULT NULL
@@ -448,6 +449,12 @@ namespace Database
 						member.SlotState == EPlayerType.SLOT_CLOSED)
 						continue;
 
+					int memberClientId = (int)KnownClients.EKnownClients.unknown;
+					if (member.GetSession().TryGetTarget(out var userSession) && userSession != null)
+					{
+						memberClientId = (int)userSession.m_client_id;
+					}
+
 					var model = new MatchdataMemberModel
 					{
 						user_id = member.UserID,
@@ -457,6 +464,7 @@ namespace Database
 						color = member.Color,
 						team = member.Team,
 						startpos = member.StartingPosition,
+						client_id = memberClientId,
 						buildings_built = 0,
 						buildings_killed = 0,
 						buildings_lost = 0,

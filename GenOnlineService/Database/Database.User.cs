@@ -545,16 +545,29 @@ namespace Database
 			}
 		}
 
-		public static async Task UpdateLastLoginData(AppDbContext db, long userId, string ipAddr)
+		public static async Task UpdateLastLoginData(AppDbContext db, long userId, string ipAddr, KnownClients.EKnownClients? clientId = null)
 		{
 			try
 			{
-				await db.Users
-					.Where(u => u.ID == userId)
-					.ExecuteUpdateAsync(setters => setters
-						.SetProperty(u => u.LastLogin, DateTime.UtcNow)
-						.SetProperty(u => u.LastIPAddress, ipAddr)
-					);
+				if (clientId.HasValue && clientId.Value != KnownClients.EKnownClients.unknown)
+				{
+					await db.Users
+						.Where(u => u.ID == userId)
+						.ExecuteUpdateAsync(setters => setters
+							.SetProperty(u => u.LastLogin, DateTime.UtcNow)
+							.SetProperty(u => u.LastIPAddress, ipAddr)
+							.SetProperty(u => u.ClientID, clientId.Value)
+						);
+				}
+				else
+				{
+					await db.Users
+						.Where(u => u.ID == userId)
+						.ExecuteUpdateAsync(setters => setters
+							.SetProperty(u => u.LastLogin, DateTime.UtcNow)
+							.SetProperty(u => u.LastIPAddress, ipAddr)
+						);
+				}
 			}
 			catch (Exception ex)
 			{

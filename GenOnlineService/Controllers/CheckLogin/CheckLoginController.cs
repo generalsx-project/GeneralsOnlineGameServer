@@ -208,6 +208,8 @@ namespace GenOnlineService.Controllers
 											string exe_crc = data.ContainsKey("exe_crc") ? data["exe_crc"].ToString() : "NONE";
 											Helpers.RegisterInitialPlayerExeCRC(user_id, exe_crc);
 
+											await Database.Users.UpdateLastLoginData(db, user_id, ipAddr, knownClientID);
+
 											var sessiontoken = Program.g_tokenGenerator.GenerateToken(strDisplayName, user_id, ipAddr, Program.JwtTokenGenerator.ETokenType.Session, knownClientID, sessionType, bIsAdmin);
 											var refreshtoken = Program.g_tokenGenerator.GenerateToken(strDisplayName, user_id, ipAddr, Program.JwtTokenGenerator.ETokenType.Refresh, knownClientID, sessionType, false, out string refreshJti);
 

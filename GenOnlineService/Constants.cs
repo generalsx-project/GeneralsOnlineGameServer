@@ -318,8 +318,8 @@ namespace GenOnlineService
 			UserWebSocketInstance newSess = new UserWebSocketInstance(sessionType, ownerID);
 			m_dictWebsockets[sessionType][ownerID] = newSess;
 
-			// update last login and last ip
-			await Database.Users.UpdateLastLoginData(_db, ownerID, ipAddr);
+			// update last login, last ip, and client platform
+			await Database.Users.UpdateLastLoginData(_db, ownerID, ipAddr, client_id);
 
 			// TODO_EFCORE: Optimize this, dont iterate all the time
 			int numSessions = WebSocketManager.GetNumberOfUsersOnline();
