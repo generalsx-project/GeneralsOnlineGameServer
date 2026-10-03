@@ -77,6 +77,16 @@ namespace GenOnlineService.Controllers
 		public string replay_url { get; set; } = String.Empty;
 	}
 
+	public class RouteHandler_POST_MatchProgress_Result : APIResult
+	{
+		public override Type GetReturnType()
+		{
+			return this.GetType();
+		}
+
+		public bool success { get; set; } = false;
+	}
+
 	public class RouteHandler_Get_MatchHistory_HighestMatchID_Result : APIResult
 	{
 		public override Type GetReturnType()
@@ -360,6 +370,71 @@ namespace GenOnlineService.Controllers
 								await using var db = await _dbFactory.CreateDbContextAsync();
 								await Database.MatchHistory.CommitPlayerOutcome(db, slotIndexInLobby, match_id, side,
 										buildings_built, buildings_killed, buildings_lost, units_built, units_killed, units_lost, total_money, won, desynced);
+							}
+						}
+					}
+				}
+				catch
+				{
+					return result;
+				}
+			}
+
+			return result;
+		}
+
+		[HttpPost("MatchProgress")]
+		[Authorize(Roles = "GameClient")]
+		public async Task<APIResult?> PostMatchProgress()
+		{
+			RouteHandler_POST_MatchProgress_Result result = new RouteHandler_POST_MatchProgress_Result();
+
+			using (var reader = new StreamReader(HttpContext.Request.Body))
+			{
+				string jsonData = await reader.ReadToEndAsync();
+				var options = new JsonSerializerOptions
+				{
+					PropertyNameCaseInsensitive = true,
+					MaxDepth = 32
+				};
+
+				try
+				{
+					var data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonData, options);
+
+					if (data != null && data.ContainsKey("match_id"))
+					{
+						Int64 user_id = TokenHelper.GetUserID(this);
+						EUserSessionType sessionType = TokenHelper.GetSessionType(this);
+						if (user_id != -1 && SessionHelpers.SessionTypeHasAccessTo(sessionType, ESessionAccessType.Gameplay))
+						{
+							UserSession? sourceData = WebSocketManager.GetSessionFromUser(user_id, sessionType);
+							if (sourceData != null)
+							{
+								UInt64 match_id = data["match_id"].GetUInt64();
+
+								if (!sourceData.WasPlayerInMatch(match_id, out int slotIndexInLobby, out int army, out _))
+								{
+									Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+									return null;
+								}
+
+								int? side = data.TryGetValue("side", out var sideElem) && sideElem.ValueKind == JsonValueKind.Number ? sideElem.GetInt32() : null;
+								int? buildings_built = data.TryGetValue("buildings_built", out var bbElem) && bbElem.ValueKind == JsonValueKind.Number ? bbElem.GetInt32() : null;
+								int? buildings_killed = data.TryGetValue("buildings_killed", out var bkElem) && bkElem.ValueKind == JsonValueKind.Number ? bkElem.GetInt32() : null;
+								int? buildings_lost = data.TryGetValue("buildings_lost", out var blElem) && blElem.ValueKind == JsonValueKind.Number ? blElem.GetInt32() : null;
+								int? units_built = data.TryGetValue("units_built", out var ubElem) && ubElem.ValueKind == JsonValueKind.Number ? ubElem.GetInt32() : null;
+								int? units_killed = data.TryGetValue("units_killed", out var ukElem) && ukElem.ValueKind == JsonValueKind.Number ? ukElem.GetInt32() : null;
+								int? units_lost = data.TryGetValue("units_lost", out var ulElem) && ulElem.ValueKind == JsonValueKind.Number ? ulElem.GetInt32() : null;
+								int? total_money = data.TryGetValue("total_money", out var tmElem) && tmElem.ValueKind == JsonValueKind.Number ? tmElem.GetInt32() : null;
+
+								await using var db = await _dbFactory.CreateDbContextAsync();
+								await Database.MatchHistory.UpdatePlayerMatchProgress(
+									db, slotIndexInLobby, match_id, side,
+									buildings_built, buildings_killed, buildings_lost,
+									units_built, units_killed, units_lost, total_money);
+
+								result.success = true;
 							}
 						}
 					}

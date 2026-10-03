@@ -388,6 +388,66 @@ namespace Database
 			}
 		}
 
+		public static async Task UpdatePlayerMatchProgress(
+			AppDbContext db,
+			int slotIndex,
+			ulong matchId,
+			int? side,
+			int? buildingsBuilt,
+			int? buildingsKilled,
+			int? buildingsLost,
+			int? unitsBuilt,
+			int? unitsKilled,
+			int? unitsLost,
+			int? totalMoney)
+		{
+			if (slotIndex < 0 || slotIndex > 7)
+				return;
+
+			try
+			{
+				// 1. Load JSON for this slot
+				string? json = await _getMemberSlot(db, (long)matchId, slotIndex);
+				if (string.IsNullOrEmpty(json))
+					return;
+
+				// 2. Deserialize
+				MatchdataMemberModel? modelNullable = JsonSerializer.Deserialize<MatchdataMemberModel?>(json);
+				if (modelNullable == null)
+					return;
+
+				// 3. Update fields with non-null incoming progress
+				MatchdataMemberModel model = modelNullable.Value;
+				if (side.HasValue && side.Value >= 0)
+					model.side = side.Value;
+				if (buildingsBuilt.HasValue)
+					model.buildings_built = buildingsBuilt.Value;
+				if (buildingsKilled.HasValue)
+					model.buildings_killed = buildingsKilled.Value;
+				if (buildingsLost.HasValue)
+					model.buildings_lost = buildingsLost.Value;
+				if (unitsBuilt.HasValue)
+					model.units_built = unitsBuilt.Value;
+				if (unitsKilled.HasValue)
+					model.units_killed = unitsKilled.Value;
+				if (unitsLost.HasValue)
+					model.units_lost = unitsLost.Value;
+				if (totalMoney.HasValue)
+					model.total_money = totalMoney.Value;
+
+				// 4. Serialize back
+				string updatedJson = JsonSerializer.Serialize(model);
+
+				// 5. Update DB (single SQL UPDATE)
+				await _updateMemberSlot(db, (long)matchId, slotIndex, updatedJson);
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"[ERROR] UpdatePlayerMatchProgress failed: {ex.Message}");
+				SentrySdk.CaptureException(ex);
+			}
+		}
+
 		public static async Task _updateMemberSlot(
 	AppDbContext db, long matchId, int slotIndex, string? json)
 		{
