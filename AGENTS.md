@@ -32,6 +32,14 @@ cd GenOnlineService && dotnet run
 4. **JWT Signing Key**: `JwtSettings:Key` must be at least 32 bytes and must not contain `TODO` (`Program.ValidateSigningKey`).
 5. **Sentry Configuration**: `Sentry:enabled` and `Sentry:dsn` keys must exist (dsn may be an empty string).
 
+### Security & Configuration Rules
+
+> [!CAUTION]
+> **Never commit sensitive credentials in `GenOnlineService/appsettings.json`!**
+> `GenOnlineService/appsettings.json` is tracked by Git and must exclusively contain development fallbacks, empty strings, or `null` placeholders (especially for `Database:db_password`, `JwtSettings:Key`, `API:keys`, `API:webserver_key`, and S3/R2 credentials in `MatchData:s3_access_key` / `MatchData:s3_secret_key`).
+> 
+> Production secrets live strictly in the external host configuration (`/data/docker/generalsonline/appsettings.json` on `web04-ctb.braz.cloud`) mounted into the container at runtime. Never commit production configuration to this repository.
+
 ## Architecture & Subsystems
 
 ```
