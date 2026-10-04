@@ -2255,7 +2255,7 @@ namespace GenOnlineService
 			var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
 			await using var db = await factory.CreateDbContextAsync();
 
-			await Database.MatchHistory.AttachMatchHistoryMetadata(db, matchID, slotIndex, strFileName, fileType);
+			await Database.MatchHistory.AttachMatchHistoryMetadata(db, matchID, slotIndex, objectKey, fileType);
 
 			return await m_s3client.GetPreSignedURLAsync(request);
 		}
