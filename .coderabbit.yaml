@@ -1,0 +1,114 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+early_access: false
+enable_free_tier: true
+
+tone_instructions: >-
+  Be direct, technical, and constructive. Focus on .NET 10 ASP.NET Core service architecture,
+  thread safety (concurrent dictionaries, async/await), security (JWT auth, API keys, credential isolation),
+  protocol contracts (REST & WebSockets), MariaDB compatibility, and project conventions (tabs, AGPL-3.0 headers).
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_in_walkthrough: false
+  high_level_summary_placeholder: "@coderabbitai summary"
+  auto_title_placeholder: "@coderabbitai"
+  auto_title_instructions: >-
+    Follow Conventional Commits format strictly: `<type>(<optional scope>): <description>`.
+    Valid types: feat, fix, docs, refactor, test, chore, build, ci, perf, style.
+    Use imperative, present tense ("add", "fix", "change"). Do not capitalize the first letter of description.
+    Do not end with a period.
+    CRITICAL:
+      - Never include the '@' symbol in PR titles.
+  review_status: true
+  review_details: false
+  collapse_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: true
+  estimate_code_review_effort: true
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  suggested_labels: true
+  auto_apply_labels: true
+  poem: true
+  enable_prompt_for_ai_agents: true
+
+  path_filters:
+    - "!bin/**"
+    - "!obj/**"
+    - "!data/**"
+    - "!Exceptions/**"
+    - "!crcfiles/**"
+    - "!Database_Structure/**"
+    - "!logs/**"
+    - "!tmp/**"
+    - "!*.bin"
+    - "!*.exe"
+    - "!*.dll"
+    - "!*.log"
+    - "!.memory/**"
+    - "!.codegraph/**"
+
+  path_instructions:
+    - path: "**/*.cs"
+      instructions: >-
+        Review C# code adhering to GeneralsOnline Game Server (.NET 10) architectural guidelines:
+        1. Indentation: Strictly use tabs (not spaces) across all C# source files.
+        2. License Header: Every new or modified source file must preserve or include the AGPL-3.0 header block.
+        3. Compiler Warnings: TreatWarningsAsErrors is enforced on Release builds. Flag any code generating compiler warnings.
+        4. Security & Credentials:
+           - NEVER commit production secrets or credentials in code or appsettings.json.
+           - Appsettings.json must only contain development fallbacks, empty strings, or null placeholders.
+           - In-game client sessions must validate JWT Bearer tokens. Internal server-to-server endpoints must validate X-Api-Key.
+        5. REST Endpoint Conventions:
+           - Route format: `env/{environment}/contract/{contract_version}/[controller]`.
+           - Read raw JSON request bodies manually using `StreamReader(HttpContext.Request.Body)` with `JsonSerializerOptions { PropertyNameCaseInsensitive = true }`.
+           - Return typed `APIResult` objects.
+        6. WebSocket Protocol:
+           - WebSocket messages use integer `msg_id` routing (enums in `Constants.cs`), not string action names.
+           - Ensure thread safety across static `ConcurrentDictionary` collections in `Constants.cs` and `WebSocketManager`.
+        7. Database & Concurrency:
+           - MariaDB 11.4: Do NOT use `LIMIT` inside `IN (...)` subqueries (causes ERROR 1235 in MariaDB).
+           - Use `IDbContextFactory<AppDbContext>` pooled context; default to `NoTracking` queries unless mutating entities.
+        8. Working Directory & Path Resolution:
+           - Runtime files (`data/*.json`, `crcfiles/`) are resolved relative to `GenOnlineService/`. Do not introduce root-relative path assumptions.
+
+    - path: "**/appsettings*.json"
+      instructions: >-
+        Review application configuration:
+        - NEVER commit actual passwords, private keys, or API tokens.
+        - Ensure new configuration sections provide sensible defaults for local development.
+
+  tools:
+    gitleaks:
+      enabled: true
+    trufflehog:
+      enabled: true
+    github-checks:
+      enabled: true
+    yamllint:
+      enabled: true
+    markdownlint:
+      enabled: true
+
+chat:
+  art: false
+  auto_reply: true
+
+knowledge_base:
+  opt_out: false
+  web_search:
+    enabled: true
+  code_guidelines:
+    enabled: true
+    file_patterns:
+      - "AGENTS.md"
+  learnings:
+    scope: "local"
+  issues:
+    scope: "local"
+  pull_requests:
+    scope: "local"
