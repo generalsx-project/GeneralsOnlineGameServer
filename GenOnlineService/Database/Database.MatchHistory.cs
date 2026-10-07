@@ -769,6 +769,8 @@ namespace Database
 				MatchdataMemberModel? lastPlayerNullable = null;
 				int lastSlot = -1;
 
+				List<int> nonAbandonedSlots = new();
+
 				foreach (var kv in members)
 				{
 					var model = kv.Value;
@@ -794,6 +796,11 @@ namespace Database
 						abandonSource = "MemberLeft";
 					}
 
+					if (abandonTime == DateTime.MinValue)
+					{
+						nonAbandonedSlots.Add(kv.Key);
+					}
+
 					Console.WriteLine($"[WinnerDet]   Slot={kv.Key} user={model.user_id} side={model.side} team={model.team} time={abandonTime:O} src={abandonSource}");
 					if (abandonTime > latestLeave)
 					{
@@ -803,16 +810,28 @@ namespace Database
 					}
 				}
 
-				// A player who exited cleanly can have no timestamp at all, and MinValue never beats the
-				// MinValue seed above. If conceding left exactly one candidate they win regardless.
-				if (lastPlayerNullable == null && lstCandidateSlots.Count == 1)
+				// If exactly one candidate never abandoned, they outlasted all quitters and win.
+				if (nonAbandonedSlots.Count == 1)
 				{
-					lastSlot = lstCandidateSlots[0];
+					lastSlot = nonAbandonedSlots[0];
 					lastPlayerNullable = members[lastSlot];
-					Console.WriteLine($"[WinnerDet] Match={lobby.MatchID}: sole remaining candidate slot={lastSlot} user={lastPlayerNullable.Value.user_id} has no abandon timestamp — awarding anyway.");
+					Console.WriteLine($"[WinnerDet] Match={lobby.MatchID}: sole non-abandoned candidate slot={lastSlot} user={lastPlayerNullable.Value.user_id} — awarding win over quitters.");
 				}
+				else if (nonAbandonedSlots.Count > 1)
+				{
+					// Multiple players never abandoned (e.g. unclean disconnect or premature lobby shutdown).
+					// Cannot determine winner by abandon timestamp between players who never abandoned.
+					Console.WriteLine($"[WinnerDet] Match={lobby.MatchID}: {nonAbandonedSlots.Count} players never abandoned — fully inconclusive, clearing won flags.");
+					foreach (var kv in members)
+					{
+						if (kv.Value.side == Constants.OBSERVER_SIDE_VALUE)
+							continue;
 
-				if (lastPlayerNullable == null)
+						await UpdateMatchHistorySetWinFlag(db, lobby.MatchID, kv.Key, false);
+					}
+					return;
+				}
+				else if (lastPlayerNullable == null)
 				{
 					Console.WriteLine($"[WinnerDet] Match={lobby.MatchID}: no valid abandon timestamps found — fully inconclusive, clearing won flags.");
 					foreach (var kv in members)

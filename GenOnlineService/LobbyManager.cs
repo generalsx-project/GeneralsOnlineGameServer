@@ -559,7 +559,10 @@ namespace GenOnlineService
 				bDestroyOnHostLeave = Program.g_Config.GetSection("Lobby").GetValue<bool?>("destroy_on_host_leave") ?? true;
 			}
 
-			if (numHumanMembers == 0 || (bNeedsHostMigrate && bDestroyOnHostLeave))
+			// In-game matches must never be destroyed prematurely when the host leaves or surrenders as long as other human players remain
+			bool bShouldDestroy = numHumanMembers == 0 || (State != ELobbyState.INGAME && bNeedsHostMigrate && bDestroyOnHostLeave);
+
+			if (bShouldDestroy)
 			{
 				Console.ForegroundColor = ConsoleColor.Cyan;
 				Console.WriteLine($"DeleteLobby: Source A (Owner left [{leavingUserID}] or no humans left [{numHumanMembers}])");
