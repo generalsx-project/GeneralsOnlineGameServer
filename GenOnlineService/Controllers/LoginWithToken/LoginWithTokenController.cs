@@ -103,6 +103,32 @@ namespace GenOnlineService.Controllers.LoginWithToken
 				}
 				else
 				{
+					// Validate client version against minimum required policy
+					string? clientVersion = null;
+					if (data != null)
+					{
+						if (data.TryGetValue("client_version", out JsonElement verElem) && verElem.ValueKind == JsonValueKind.String)
+						{
+							clientVersion = verElem.GetString();
+						}
+						else if (data.TryGetValue("reserved_0", out JsonElement r0Elem) && r0Elem.ValueKind == JsonValueKind.String)
+						{
+							string r0 = r0Elem.GetString() ?? "";
+							if (!string.IsNullOrWhiteSpace(r0))
+							{
+								clientVersion = r0;
+							}
+						}
+					}
+
+					if (!bWasMonitor && !ClientVersionPolicy.IsVersionAllowed(clientVersion, out string policyReason))
+					{
+						Console.WriteLine($"[LoginWithToken] Rejected client version '{clientVersion}' from IP {ipAddr}: {policyReason}");
+						result.result = EPendingLoginState.LoginFailed;
+						Response.StatusCode = (int)HttpStatusCode.UpgradeRequired;
+						return result;
+					}
+
 					byte[] respNonce = new byte[32];
 					using (RandomNumberGenerator rng = RandomNumberGenerator.Create()) { rng.GetBytes(respNonce); }
 
