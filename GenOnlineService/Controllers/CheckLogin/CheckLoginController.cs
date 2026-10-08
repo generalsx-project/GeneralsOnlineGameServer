@@ -56,6 +56,10 @@ namespace GenOnlineService.Controllers
 			_dbFactory = dbFactory;
 		}
 
+		/// <summary>
+		/// Handles login validation HTTP POST requests from the game client.
+		/// </summary>
+		/// <returns>An <see cref="APIResult"/> indicating login status and credentials if authenticated.</returns>
 		[HttpPost]
 		//public async Task<APIResult> Post([FromHeader(Name = "CF-Connecting-IP")] string? ipAddress)
 		public async Task<APIResult> Post()
@@ -75,6 +79,14 @@ namespace GenOnlineService.Controllers
 			}
 		}
 
+		/// <summary>
+		/// Internal processing handler for CheckLogin requests with IP resolution and version policy enforcement.
+		/// </summary>
+		/// <param name="jsonData">Raw JSON payload from the request body.</param>
+		/// <param name="ipAddr">Resolved client IP address.</param>
+		/// <param name="bSecureWS">Whether secure WebSocket endpoints are required.</param>
+		/// <param name="bIsMonitor">Whether the request originated from an internal health monitor.</param>
+		/// <returns>An <see cref="APIResult"/> with the login evaluation result.</returns>
 		public async Task<APIResult> Post_InternalHandler(string jsonData, string ipAddr, bool bSecureWS, bool bIsMonitor = false)
 		{
 			POST_CheckLogin_Result result = new POST_CheckLogin_Result();
@@ -101,6 +113,37 @@ namespace GenOnlineService.Controllers
 				}
 				else
 				{
+					// Validate client version against minimum required policy
+					string? clientVersion = null;
+					if (data != null)
+					{
+						if (data.TryGetValue("client_version", out JsonElement verElem) && verElem.ValueKind == JsonValueKind.String)
+						{
+							string cv = verElem.GetString() ?? "";
+							if (!string.IsNullOrWhiteSpace(cv))
+							{
+								clientVersion = cv;
+							}
+						}
+
+						if (string.IsNullOrWhiteSpace(clientVersion) && data.TryGetValue("reserved_0", out JsonElement r0Elem) && r0Elem.ValueKind == JsonValueKind.String)
+						{
+							string r0 = r0Elem.GetString() ?? "";
+							if (!string.IsNullOrWhiteSpace(r0))
+							{
+								clientVersion = r0;
+							}
+						}
+					}
+
+					if (!bIsMonitor && !ClientVersionPolicy.IsVersionAllowed(clientVersion, out string policyReason))
+					{
+						Console.WriteLine($"[CheckLogin] Rejected client version '{clientVersion}' from IP {ipAddr}: {policyReason}");
+						result.result = EPendingLoginState.LoginFailed;
+						Response.StatusCode = (int)HttpStatusCode.UpgradeRequired;
+						return result;
+					}
+
 					if (data != null && data.ContainsKey("code"))
 					{
 						if (data != null && data.ContainsKey("code") && data.ContainsKey("client_id"))
