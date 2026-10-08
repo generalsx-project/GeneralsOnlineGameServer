@@ -4,9 +4,9 @@ early_access: false
 enable_free_tier: true
 
 tone_instructions: >-
-  Be direct, technical, and constructive. Focus on .NET 10 ASP.NET Core service architecture,
-  thread safety (concurrent dictionaries, async/await), security (JWT auth, API keys, credential isolation),
-  protocol contracts (REST & WebSockets), MariaDB compatibility, and project conventions (tabs, AGPL-3.0 headers).
+  Be direct, technical, and constructive. Focus on .NET 10 ASP.NET Core,
+  thread safety, security (JWT/API keys), REST/WebSocket contracts,
+  MariaDB compatibility, and project conventions (tabs, AGPL-3.0 headers).
 
 reviews:
   profile: "chill"
@@ -104,7 +104,7 @@ knowledge_base:
     enabled: true
   code_guidelines:
     enabled: true
-    file_patterns:
+    filePatterns:
       - "AGENTS.md"
   learnings:
     scope: "local"

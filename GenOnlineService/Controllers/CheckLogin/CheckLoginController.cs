@@ -107,9 +107,14 @@ namespace GenOnlineService.Controllers
 					{
 						if (data.TryGetValue("client_version", out JsonElement verElem) && verElem.ValueKind == JsonValueKind.String)
 						{
-							clientVersion = verElem.GetString();
+							string cv = verElem.GetString() ?? "";
+							if (!string.IsNullOrWhiteSpace(cv))
+							{
+								clientVersion = cv;
+							}
 						}
-						else if (data.TryGetValue("reserved_0", out JsonElement r0Elem) && r0Elem.ValueKind == JsonValueKind.String)
+
+						if (string.IsNullOrWhiteSpace(clientVersion) && data.TryGetValue("reserved_0", out JsonElement r0Elem) && r0Elem.ValueKind == JsonValueKind.String)
 						{
 							string r0 = r0Elem.GetString() ?? "";
 							if (!string.IsNullOrWhiteSpace(r0))
