@@ -58,6 +58,10 @@ namespace GenOnlineService.Controllers.LoginWithToken
 			_dbFactory = dbFactory;
 		}
 
+		/// <summary>
+		/// Handles persistent token authentication HTTP POST requests from the game client.
+		/// </summary>
+		/// <returns>An <see cref="APIResult"/> indicating token refresh status and session credentials.</returns>
 		[HttpPost(Name = "PostLoginWithToken")]
 		//public async Task<APIResult> Post([FromHeader(Name = "CF-Connecting-IP")] string? ipAddress)
 		public async Task<APIResult> Post()
@@ -77,6 +81,14 @@ namespace GenOnlineService.Controllers.LoginWithToken
 			}
 		}
 
+		/// <summary>
+		/// Internal processing handler for LoginWithToken requests with IP resolution and version policy enforcement.
+		/// </summary>
+		/// <param name="jsonData">Raw JSON payload from the request body.</param>
+		/// <param name="ipAddr">Resolved client IP address.</param>
+		/// <param name="bSecureWS">Whether secure WebSocket endpoints are required.</param>
+		/// <param name="bWasMonitor">Whether the request originated from an internal health monitor.</param>
+		/// <returns>An <see cref="APIResult"/> with the login evaluation result.</returns>
 		public async Task<APIResult> Post_InternalHandler(string jsonData, string ipAddr, bool bSecureWS, bool bWasMonitor = false)
 		{
 			if (bWasMonitor)

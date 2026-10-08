@@ -56,6 +56,10 @@ namespace GenOnlineService.Controllers
 			_dbFactory = dbFactory;
 		}
 
+		/// <summary>
+		/// Handles login validation HTTP POST requests from the game client.
+		/// </summary>
+		/// <returns>An <see cref="APIResult"/> indicating login status and credentials if authenticated.</returns>
 		[HttpPost]
 		//public async Task<APIResult> Post([FromHeader(Name = "CF-Connecting-IP")] string? ipAddress)
 		public async Task<APIResult> Post()
@@ -75,6 +79,14 @@ namespace GenOnlineService.Controllers
 			}
 		}
 
+		/// <summary>
+		/// Internal processing handler for CheckLogin requests with IP resolution and version policy enforcement.
+		/// </summary>
+		/// <param name="jsonData">Raw JSON payload from the request body.</param>
+		/// <param name="ipAddr">Resolved client IP address.</param>
+		/// <param name="bSecureWS">Whether secure WebSocket endpoints are required.</param>
+		/// <param name="bIsMonitor">Whether the request originated from an internal health monitor.</param>
+		/// <returns>An <see cref="APIResult"/> with the login evaluation result.</returns>
 		public async Task<APIResult> Post_InternalHandler(string jsonData, string ipAddr, bool bSecureWS, bool bIsMonitor = false)
 		{
 			POST_CheckLogin_Result result = new POST_CheckLogin_Result();

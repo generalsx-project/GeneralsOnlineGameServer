@@ -55,6 +55,12 @@ namespace GenOnlineService
 				return false;
 			}
 
+			if (!TryParseVersion(minVersionStr, out Version? minVer, out string? minPrerelease) || minVer == null)
+			{
+				reason = $"Server configuration error: MinVersion '{minVersionStr}' cannot be parsed";
+				return false;
+			}
+
 			bool allowDev = section.GetValue<bool>("AllowDevClients", true);
 			if (allowDev && !string.IsNullOrWhiteSpace(clientVersion) &&
 				(clientVersion.Equals("dev", StringComparison.OrdinalIgnoreCase) ||
@@ -76,12 +82,6 @@ namespace GenOnlineService
 				return false;
 			}
 
-			if (!TryParseVersion(minVersionStr, out Version? minVer, out string? minPrerelease) || minVer == null)
-			{
-				reason = $"Server configuration error: MinVersion '{minVersionStr}' cannot be parsed";
-				return false;
-			}
-
 			if (clientVer < minVer)
 			{
 				reason = $"Client version {clientVer} is lower than required minimum {minVer}";
@@ -99,7 +99,7 @@ namespace GenOnlineService
 
 				if (!string.IsNullOrEmpty(clientPrerelease) && !string.IsNullOrEmpty(minPrerelease))
 				{
-					if (string.Compare(clientPrerelease, minPrerelease, StringComparison.OrdinalIgnoreCase) < 0)
+					if (ComparePrerelease(clientPrerelease, minPrerelease) < 0)
 					{
 						reason = $"Client prerelease '{clientPrerelease}' is lower than required minimum prerelease '{minPrerelease}'";
 						return false;
@@ -166,6 +166,65 @@ namespace GenOnlineService
 		public static bool TryParseVersion(string? versionStr, out Version? version)
 		{
 			return TryParseVersion(versionStr, out version, out _);
+		}
+
+		/// <summary>
+		/// Compares two SemVer 2.0.0 prerelease identifier strings according to SemVer precedence rules.
+		/// </summary>
+		/// <param name="preA">The first prerelease string.</param>
+		/// <param name="preB">The second prerelease string.</param>
+		/// <returns>A negative integer if preA &lt; preB, zero if preA == preB, or a positive integer if preA &gt; preB.</returns>
+		public static int ComparePrerelease(string preA, string preB)
+		{
+			if (string.Equals(preA, preB, StringComparison.OrdinalIgnoreCase))
+			{
+				return 0;
+			}
+
+			string[] aParts = preA.Split('.');
+			string[] bParts = preB.Split('.');
+			int len = Math.Min(aParts.Length, bParts.Length);
+
+			for (int i = 0; i < len; i++)
+			{
+				string partA = aParts[i];
+				string partB = bParts[i];
+				if (string.Equals(partA, partB, StringComparison.OrdinalIgnoreCase))
+				{
+					continue;
+				}
+
+				bool aIsNum = ulong.TryParse(partA, out ulong numA);
+				bool bIsNum = ulong.TryParse(partB, out ulong numB);
+
+				if (aIsNum && bIsNum)
+				{
+					int numCmp = numA.CompareTo(numB);
+					if (numCmp != 0)
+					{
+						return numCmp;
+					}
+				}
+				else if (aIsNum && !bIsNum)
+				{
+					// Numeric identifiers have lower precedence than non-numeric identifiers
+					return -1;
+				}
+				else if (!aIsNum && bIsNum)
+				{
+					return 1;
+				}
+				else
+				{
+					int strCmp = string.Compare(partA, partB, StringComparison.OrdinalIgnoreCase);
+					if (strCmp != 0)
+					{
+						return strCmp;
+					}
+				}
+			}
+
+			return aParts.Length.CompareTo(bParts.Length);
 		}
 	}
 }
