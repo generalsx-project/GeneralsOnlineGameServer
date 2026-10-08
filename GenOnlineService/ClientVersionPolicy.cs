@@ -17,6 +17,7 @@
 */
 
 using System;
+using System.Numerics;
 using Microsoft.Extensions.Configuration;
 
 namespace GenOnlineService
@@ -194,8 +195,8 @@ namespace GenOnlineService
 					continue;
 				}
 
-				bool aIsNum = ulong.TryParse(partA, out ulong numA);
-				bool bIsNum = ulong.TryParse(partB, out ulong numB);
+				bool aIsNum = BigInteger.TryParse(partA, out BigInteger numA);
+				bool bIsNum = BigInteger.TryParse(partB, out BigInteger numB);
 
 				if (aIsNum && bIsNum)
 				{
