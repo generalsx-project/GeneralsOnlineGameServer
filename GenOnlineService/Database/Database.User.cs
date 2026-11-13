@@ -81,6 +81,7 @@ public class User
 	public int EloRating { get; set; } = EloConfig.BaseRating;
 	public int MonthlyEloRating { get; set; } = EloConfig.BaseRating;
 	public int EloNumberOfMatches { get; set; } = 0;
+	public DateTime? LastMatchAt { get; set; } = null;
 
 	// Bans
 	public string? BanReason { get; set; } = String.Empty;
@@ -165,6 +166,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 		builder.Property(e => e.EloRating).HasColumnName("elo_rating");
 		builder.Property(e => e.MonthlyEloRating).HasColumnName("monthly_elo_rating");
 		builder.Property(e => e.EloNumberOfMatches).HasColumnName("elo_num_matches");
+		builder.Property(e => e.LastMatchAt).HasColumnName("last_match_at").HasColumnType("datetime").IsRequired(false);
 		builder.Property(e => e.BanReason).HasColumnName("ban_reason").HasColumnType("varchar(128)"); ;
 		builder.Property(e => e.BannedBy).HasColumnName("banned_by").HasColumnType("varchar(50)"); ;
 		builder.Property(e => e.BanVerifiedBy).HasColumnName("ban_verified_by").HasColumnType("varchar(50)"); ;
@@ -651,17 +653,31 @@ namespace Database
 			}
 		}
 
-		public static async Task SaveELOData(AppDbContext db, long userId, EloData newEloData)
+		public static async Task SaveELOData(AppDbContext db, long userId, EloData newEloData, bool updateLastMatch = false)
 		{
 			try
 			{
-				await db.Users
-					.Where(u => u.ID == userId)
-					.ExecuteUpdateAsync(setters => setters
-						.SetProperty(u => u.EloRating, newEloData.Rating)
-						.SetProperty(u => u.MonthlyEloRating, newEloData.MonthlyRating)
-						.SetProperty(u => u.EloNumberOfMatches, newEloData.NumMatches)
-					);
+				if (updateLastMatch)
+				{
+					await db.Users
+						.Where(u => u.ID == userId)
+						.ExecuteUpdateAsync(setters => setters
+							.SetProperty(u => u.EloRating, newEloData.Rating)
+							.SetProperty(u => u.MonthlyEloRating, newEloData.MonthlyRating)
+							.SetProperty(u => u.EloNumberOfMatches, newEloData.NumMatches)
+							.SetProperty(u => u.LastMatchAt, DateTime.UtcNow)
+						);
+				}
+				else
+				{
+					await db.Users
+						.Where(u => u.ID == userId)
+						.ExecuteUpdateAsync(setters => setters
+							.SetProperty(u => u.EloRating, newEloData.Rating)
+							.SetProperty(u => u.MonthlyEloRating, newEloData.MonthlyRating)
+							.SetProperty(u => u.EloNumberOfMatches, newEloData.NumMatches)
+						);
+				}
 			}
 			catch (Exception ex)
 			{

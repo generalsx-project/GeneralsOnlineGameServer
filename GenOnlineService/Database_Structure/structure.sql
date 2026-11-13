@@ -261,6 +261,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `elo_rating` int(11) NOT NULL DEFAULT 1000,
   `monthly_elo_rating` int(11) NOT NULL DEFAULT 1000,
   `elo_num_matches` int(11) NOT NULL DEFAULT 0,
+  `last_match_at` datetime DEFAULT NULL,
   `ban_reason` varchar(128) DEFAULT NULL,
   `banned_by` varchar(50) DEFAULT NULL,
   `ban_verified_by` varchar(50) DEFAULT NULL,

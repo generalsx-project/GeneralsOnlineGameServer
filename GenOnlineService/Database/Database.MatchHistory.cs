@@ -1361,7 +1361,7 @@ namespace Database
 				}
 
 				// EF Core persistence (no ref locals allowed)
-				await Database.Users.SaveELOData(db, userId, data);
+				await Database.Users.SaveELOData(db, userId, data, updateLastMatch: true);
 			}
 		}
 
@@ -1408,6 +1408,9 @@ namespace Database
 						continue;
 
 					if (a.user_id >= b.user_id)
+						continue;
+
+					if (a.won == b.won)
 						continue;
 
 					// Daily
